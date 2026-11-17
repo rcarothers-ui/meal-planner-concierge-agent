@@ -1,0 +1,86 @@
+name: AgentOps CI/CD & Automated Evaluation Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  unit-tests-and-golden-evals:
+    name: Run Unit Tests, Secret Scan & Golden Dataset Regression Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify Zero Hardcoded Secrets
+        run: |
+          python -m pytest tests/test_agent_rubric.py -k "test_secure_secret_management_no_hardcoded_keys" -v
+
+      - name: Execute Full Rubric Unit Tests
+        run: |
+          python -m pytest tests/ -v
+
+      - name: Run Golden Dataset Static Regression Evaluation Harness
+        run: |
+          python -m evals.evaluate_agent --dataset evals/golden_dataset.json --min-pass-rate 0.95
+
+  terraform-validate:
+    name: Validate Terraform Infrastructure as Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.8.0"
+
+      - name: Terraform Format & Validation Check
+        working-directory: ./terraform
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  deploy-to-vertex-agent-engine:
+    name: Deploy to Vertex AI Agent Engine via ADK CLI
+    needs: [unit-tests-and-golden-evals, terraform-validate]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud via Workload Identity Federation
+        if: env.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+
+      - name: Deploy Agent using Google ADK CLI
+        if: env.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
+        run: |
+          adk deploy agent_engine \
+            --project="${{ secrets.GOOGLE_CLOUD_PROJECT }}" \
+            --region="us-central1" \
+            --staging_bucket="gs://${{ secrets.GOOGLE_CLOUD_PROJECT }}-adk-staging" \
+            --display_name="Automated-Meal-Planning-Concierge-Agent" \
+            meal_planner_agent

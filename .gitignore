@@ -1,0 +1,32 @@
+# Python byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets and local environment overrides (Never commit secrets!)
+.env
+*.pem
+*.key
+service-account*.json
+
+# Terraform local state
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+
+# Local SQLite fallback state
+*.db
+*.sqlite3

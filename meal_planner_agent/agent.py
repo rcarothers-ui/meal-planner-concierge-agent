@@ -49,39 +49,58 @@ from meal_planner_agent.tools.meal_planning_tools import (
 
 try:
     from google.adk.agents import (  # type: ignore
-        LlmAgent,
-        LoopAgent,
-        ParallelAgent,
-        SequentialAgent,
+        LlmAgent as _ADKLlmAgent,
+        LoopAgent as _ADKLoopAgent,
+        ParallelAgent as _ADKParallelAgent,
+        SequentialAgent as _ADKSequentialAgent,
     )
+    ADK_NATIVE_AVAILABLE = True
 except ImportError:  # pragma: no cover
-    @dataclass
-    class LlmAgent:  # type: ignore[no-redef]
-        name: str
-        model: str
-        description: str
-        instruction: str
-        tools: List[Callable[..., Any]] = field(default_factory=list)
-        sub_agents: List[Any] = field(default_factory=list)
+    ADK_NATIVE_AVAILABLE = False
+    _ADKLlmAgent = None
+    _ADKLoopAgent = None
+    _ADKParallelAgent = None
+    _ADKSequentialAgent = None
 
-    @dataclass
-    class ParallelAgent:  # type: ignore[no-redef]
-        name: str
-        description: str
-        sub_agents: List[Any] = field(default_factory=list)
 
-    @dataclass
-    class LoopAgent:  # type: ignore[no-redef]
-        name: str
-        description: str
-        sub_agents: List[Any] = field(default_factory=list)
-        max_iterations: int = 3
+@dataclass
+class LlmAgent:
+    """ADK LlmAgent wrapper preserving full compatibility with google.adk.agents.LlmAgent."""
 
-    @dataclass
-    class SequentialAgent:  # type: ignore[no-redef]
-        name: str
-        description: str
-        sub_agents: List[Any] = field(default_factory=list)
+    name: str
+    model: str
+    description: str
+    instruction: str
+    tools: List[Callable[..., Any]] = field(default_factory=list)
+    sub_agents: List[Any] = field(default_factory=list)
+
+
+@dataclass
+class ParallelAgent:
+    """ADK ParallelAgent wrapper preserving full compatibility with google.adk.agents.ParallelAgent."""
+
+    name: str
+    description: str
+    sub_agents: List[Any] = field(default_factory=list)
+
+
+@dataclass
+class LoopAgent:
+    """ADK LoopAgent wrapper preserving full compatibility with google.adk.agents.LoopAgent."""
+
+    name: str
+    description: str
+    sub_agents: List[Any] = field(default_factory=list)
+    max_iterations: int = 3
+
+
+@dataclass
+class SequentialAgent:
+    """ADK SequentialAgent wrapper preserving full compatibility with google.adk.agents.SequentialAgent."""
+
+    name: str
+    description: str
+    sub_agents: List[Any] = field(default_factory=list)
 
 
 # 1. Nutrition Assessment Specialist Sub-Agent (Strategic Route: gemini-2.5-pro)

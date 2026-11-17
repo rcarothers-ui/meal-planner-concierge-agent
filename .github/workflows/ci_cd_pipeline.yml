@@ -31,15 +31,15 @@ jobs:
 
       - name: Verify Zero Hardcoded Secrets
         run: |
-          python -m pytest tests/test_agent_rubric.py -k "test_secure_secret_management_no_hardcoded_keys" -v
+          PYTHONPATH=. python -m pytest tests/test_agent_rubric.py -k "test_5_3_secure_secret_management_no_hardcoded_keys" -v
 
       - name: Execute Full Rubric Unit Tests
         run: |
-          python -m pytest tests/ -v
+          PYTHONPATH=. python -m pytest tests/ -v
 
       - name: Run Golden Dataset Static Regression Evaluation Harness
         run: |
-          python -m evals.evaluate_agent --dataset evals/golden_dataset.json --min-pass-rate 0.95
+          PYTHONPATH=. python -m evals.evaluate_agent --dataset evals/golden_dataset.json --min-pass-rate 0.95
 
   terraform-validate:
     name: Validate Terraform Infrastructure as Code
